@@ -60,5 +60,29 @@ router.get('/inspect', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+router.get('/search', async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) return res.status(400).json({ error: 'q required' });
 
+        const result = await cloudinary.search
+            .expression(`filename:*${q}*`)
+            .with_field('context')
+            .max_results(20)
+            .execute();
+
+        res.json(
+            result.resources.map((r) => ({
+                public_id: r.public_id,
+                resource_type: r.resource_type,
+                type: r.type,
+                format: r.format,
+                secure_url: r.secure_url,
+                created_at: r.created_at,
+            }))
+        );
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 export default router;
