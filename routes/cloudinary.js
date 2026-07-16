@@ -85,4 +85,25 @@ router.get('/search', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+router.get('/list-all', async (req, res) => {
+    try {
+        const results = {};
+        for (const resourceType of ['image', 'raw', 'video']) {
+            const resp = await cloudinary.api.resources({
+                resource_type: resourceType,
+                type: 'upload',
+                max_results: 30,
+            });
+            results[resourceType] = resp.resources.map((r) => ({
+                public_id: r.public_id,
+                created_at: r.created_at,
+                bytes: r.bytes,
+            }));
+        }
+        res.json(results);
+    } catch (error) {
+        res.status(500).json({ error: error.message, http_code: error.http_code });
+    }
+});
 export default router;
