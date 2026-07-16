@@ -4,6 +4,7 @@ import cors from 'cors';
 import env from 'dotenv';
 import userRoutes from './routes/userroutes.js';
 import uploadRoutes from './routes/paperRoutes.js';
+import cloudinaryRoutes from './routes/cloudinary.js';
 
 env.config();
 
@@ -15,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/upload', uploadRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/cloudinary", cloudinaryRoutes);
 
 app.get('/', (req, res) => {
     res.json({
