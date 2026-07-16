@@ -16,28 +16,21 @@ cloudinary.config({
 // Generate signed URL for private files
 router.get('/sign', (req, res) => {
     try {
-        const { publicId, resourceType = 'raw' } = req.query;
+        const { publicId, resourceType = 'image', type = 'upload' } = req.query;
+        if (!publicId) return res.status(400).json({ error: 'publicId is required' });
 
-        if (!publicId) {
-            return res.status(400).json({ error: 'publicId is required' });
-        }
-
-        // Generate a signed URL that expires in 1 hour
-        const signedUrl = cloudinary.url(publicId, {
+        const url = cloudinary.url(publicId, {
             resource_type: resourceType,
-            type: 'authenticated',
-            sign_url: true,
-            expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour
+            type, // 'upload', matching how it's actually stored — confirmed by list-all
             secure: true,
+            sign_url: true,
         });
 
-        res.json({ url: signedUrl });
+        res.json({ url });
     } catch (error) {
-        console.error('Error generating signed URL:', error);
         res.status(500).json({ error: error.message });
     }
 });
-
 // routes/debug.js
 router.get('/inspect', async (req, res) => {
     try {
