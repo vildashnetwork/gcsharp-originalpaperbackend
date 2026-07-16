@@ -47,13 +47,23 @@ router.get('/year/:year', async (req, res) => {
 });
 
 // POST create a new paper
+// POST create a new paper
 router.post('/', async (req, res) => {
     try {
+        console.log('Received paper data:', req.body); // Debug log
+
         const paper = new Paper(req.body);
         const savedPaper = await paper.save();
         res.status(201).json(savedPaper);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error('Error saving paper:', error.message);
+        console.error('Full error:', error);
+
+        // Send detailed error message
+        res.status(400).json({
+            message: error.message,
+            errors: error.errors // Mongoose validation errors
+        });
     }
 });
 
