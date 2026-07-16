@@ -21,6 +21,27 @@ const paperSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    cloudinaryUrl: {
+        type: String,
+        required: true,
+    },
+    cloudinaryPublicId: {
+        type: String,
+        required: true,
+    },
+    fileSize: {
+        type: Number,
+    },
+    fileType: {
+        type: String,
+    },
+    uploadedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+    },
+    uploaderName: {
+        type: String,
+    },
 }, {
     timestamps: true
 });

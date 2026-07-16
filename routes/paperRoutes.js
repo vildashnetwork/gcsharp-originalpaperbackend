@@ -6,7 +6,7 @@ const router = express.Router();
 // GET all papers
 router.get('/', async (req, res) => {
     try {
-        const papers = await Paper.find();
+        const papers = await Paper.find().sort({ createdAt: -1 });
         res.status(200).json(papers);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -26,16 +26,6 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// GET papers by department
-router.get('/department/:department', async (req, res) => {
-    try {
-        const papers = await Paper.find({ department: req.params.department });
-        res.status(200).json(papers);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
 // GET papers by category
 router.get('/category/:category', async (req, res) => {
     try {
@@ -46,7 +36,7 @@ router.get('/category/:category', async (req, res) => {
     }
 });
 
-// GET papers by exam year
+// GET papers by year
 router.get('/year/:year', async (req, res) => {
     try {
         const papers = await Paper.find({ examyear: parseInt(req.params.year) });
