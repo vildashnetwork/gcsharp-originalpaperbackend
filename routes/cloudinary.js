@@ -38,4 +38,29 @@ router.get('/sign', (req, res) => {
     }
 });
 
+// routes/debug.js
+router.get('/inspect', async (req, res) => {
+    try {
+        const { publicId, resourceType = 'raw' } = req.query;
+        if (!publicId) return res.status(400).json({ error: 'publicId required' });
+
+        // Try to find it under each possible type
+        const results = {};
+        for (const type of ['upload', 'authenticated', 'private']) {
+            try {
+                const info = await cloudinary.api.resource(publicId, {
+                    resource_type: resourceType,
+                    type,
+                });
+                results[type] = { found: true, secure_url: info.secure_url, created_at: info.created_at };
+            } catch (err) {
+                results[type] = { found: false, error: err.error?.message || err.message };
+            }
+        }
+        res.json({ publicId, resourceType, results });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;
