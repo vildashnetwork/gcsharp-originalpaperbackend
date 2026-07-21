@@ -27,7 +27,7 @@ const upload = multer({
 
 
 // Endpoint to handle file upload to Cloudinary
-router.post('/api/upload-to-cloudinary', upload.single('file'), async (req, res) => {
+router.post('/upload-to-cloudinary', upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file provided' });
