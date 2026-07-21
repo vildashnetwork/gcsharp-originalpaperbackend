@@ -1,7 +1,103 @@
 import express from 'express';
 import Paper from '../models/Papers.js';
 
+import cloudinary from 'cloudinary';
+import multer from 'multer';
+import { PassThrough } from 'stream';
+
 const router = express.Router();
+
+
+
+cloudinary.v2.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Configure multer for memory storage (handles large files)
+const storage = multer.memoryStorage();
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 200 * 1024 * 1024, // 200MB limit
+    },
+});
+
+
+
+// Endpoint to handle file upload to Cloudinary
+router.post('/api/upload-to-cloudinary', upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file provided' });
+        }
+
+        console.log(`Uploading to Cloudinary: ${req.file.originalname}, Size: ${req.file.size} bytes`);
+
+        // Convert buffer to stream for Cloudinary upload
+        const bufferStream = new PassThrough();
+        bufferStream.end(req.file.buffer);
+
+        // Upload to Cloudinary with compression options
+        const result = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.v2.uploader.upload_stream(
+                {
+                    resource_type: 'raw',
+                    folder: 'papers',
+                    // For PDFs, we can use quality and format options
+                    quality: 'auto:low', // Low quality for compression
+                    format: 'pdf', // Keep as PDF
+                    flags: 'attachment', // Ensure it's downloadable
+                },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            );
+
+            bufferStream.pipe(uploadStream);
+        });
+
+        console.log('Cloudinary upload successful:', result.secure_url);
+        console.log('Original size:', req.file.size);
+        console.log('Compressed size:', result.bytes);
+
+        // Return the Cloudinary result
+        res.json({
+            secure_url: result.secure_url,
+            public_id: result.public_id,
+            resource_type: result.resource_type,
+            bytes: result.bytes,
+            originalSize: req.file.size,
+        });
+    } catch (error) {
+        console.error('Cloudinary upload error:', error);
+        res.status(500).json({ error: error.message || 'Upload failed' });
+    }
+});
+
+// Alternative endpoint for direct URL upload (if you want to use Cloudinary's transform API)
+router.post('/api/compress-pdf', async (req, res) => {
+    try {
+        const { cloudinaryPublicId } = req.body;
+
+        // Generate a compressed version using Cloudinary's transformation API
+        const compressedUrl = cloudinary.v2.url(cloudinaryPublicId, {
+            resource_type: 'raw',
+            quality: 'auto:low',
+            format: 'pdf',
+            flags: 'attachment',
+        });
+
+        res.json({ compressedUrl });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+
 
 // GET all papers
 router.get('/', async (req, res) => {
