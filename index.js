@@ -9,8 +9,34 @@ import cloudinaryRoutes from './routes/cloudinary.js';
 env.config();
 
 const app = express();
+const allowedOrigins = [
+    'https://gcsmart-paper.vercel.app',
+    'http://localhost:8080',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://gcsmart-paper.vercel.app',
+];
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
 
-app.use(cors());
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('❌ Blocked origin:', origin);
+            callback(null, true); // Allow all origins in development
+            // For production, use: callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+}));
+
+// Handle preflight requests
+app.options('*', cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
