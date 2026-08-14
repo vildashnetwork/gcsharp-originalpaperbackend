@@ -248,7 +248,6 @@
 
 
 
-
 import express from 'express';
 import Paper from '../models/Papers.js';
 import cloudinary from 'cloudinary';
@@ -273,12 +272,12 @@ const upload = multer({
     },
 });
 
-// Helper function to generate unique paper_id
+// Helper function to generate unique paper_id - MATCH PYTHON'S FORMAT
 const generatePaperId = () => {
-    const prefix = 'pap';
-    const randomString = crypto.randomBytes(8).toString('hex');
-    const timestamp = Date.now().toString(36);
-    return `${prefix}_${timestamp}_${randomString}`;
+    // Python uses: f"pap_{uuid.uuid4().hex[:12]}"
+    // Generate 12 random hex characters (6 bytes)
+    const randomString = crypto.randomBytes(6).toString('hex');
+    return `pap_${randomString}`;
 };
 
 // Endpoint to handle file upload to Cloudinary
@@ -324,7 +323,7 @@ router.post('/upload-to-cloudinary', upload.single('file'), async (req, res) => 
             secure_url: result.secure_url,
             public_id: result.public_id,
             resource_type: result.resource_type,
-            bytes: result.bytes, // This is the compressed file size
+            bytes: result.bytes,
             originalSize: req.file.size,
         });
     } catch (error) {
@@ -384,6 +383,7 @@ router.post('/', async (req, res) => {
 
         // Generate unique paper_id
         const paperId = generatePaperId();
+        console.log('Generated paper_id:', paperId);
 
         // Ensure all fields are properly set
         const paperData = {
@@ -395,7 +395,7 @@ router.post('/', async (req, res) => {
             paper_number: parseInt(req.body.paper_number) || 1,
             pdf_url: req.body.pdf_url || '',
             description: req.body.description || '',
-            fileSize: req.body.fileSize ? Number(req.body.fileSize) : 0, // Force to number
+            fileSize: req.body.fileSize ? Number(req.body.fileSize) : 0,
             originalFileSize: req.body.originalFileSize ? Number(req.body.originalFileSize) : 0,
             fileType: req.body.fileType || 'application/pdf',
             uploadedBy: req.body.uploadedBy || null,
@@ -412,8 +412,8 @@ router.post('/', async (req, res) => {
 
         console.log('=== PAPER SAVED SUCCESSFULLY ===');
         console.log('Saved paper ID:', savedPaper._id);
+        console.log('Saved paper_id:', savedPaper.paper_id);
         console.log('Saved fileSize:', savedPaper.fileSize);
-        console.log('Saved paper:', JSON.stringify(savedPaper, null, 2));
 
         res.status(201).json(savedPaper);
     } catch (error) {
