@@ -249,7 +249,6 @@
 
 
 
-
 import express from 'express';
 import Paper from '../models/Papers.js';
 import cloudinary from 'cloudinary';
@@ -314,16 +313,18 @@ router.post('/upload-to-cloudinary', upload.single('file'), async (req, res) => 
             bufferStream.pipe(uploadStream);
         });
 
-        console.log('Cloudinary upload successful:', result.secure_url);
-        console.log('Original size:', req.file.size);
-        console.log('Compressed size:', result.bytes);
+        console.log('Cloudinary upload successful:');
+        console.log('- URL:', result.secure_url);
+        console.log('- Original size:', req.file.size);
+        console.log('- Compressed size:', result.bytes);
+        console.log('- Public ID:', result.public_id);
 
-        // Return the Cloudinary result
+        // Return the Cloudinary result with both sizes
         res.json({
             secure_url: result.secure_url,
             public_id: result.public_id,
             resource_type: result.resource_type,
-            bytes: result.bytes,
+            bytes: result.bytes, // This is the compressed file size
             originalSize: req.file.size,
         });
     } catch (error) {
@@ -332,29 +333,14 @@ router.post('/upload-to-cloudinary', upload.single('file'), async (req, res) => 
     }
 });
 
-// Alternative endpoint for direct URL upload (if you want to use Cloudinary's transform API)
-router.post('/api/compress-pdf', async (req, res) => {
-    try {
-        const { cloudinaryPublicId } = req.body;
-
-        // Generate a compressed version using Cloudinary's transformation API
-        const compressedUrl = cloudinary.v2.url(cloudinaryPublicId, {
-            resource_type: 'raw',
-            quality: 'auto:low',
-            format: 'pdf',
-            flags: 'attachment',
-        });
-
-        res.json({ compressedUrl });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // GET all papers
 router.get('/', async (req, res) => {
     try {
         const papers = await Paper.find().sort({ createdAt: -1 });
+        console.log(`Found ${papers.length} papers`);
+        if (papers.length > 0) {
+            console.log('First paper fileSize:', papers[0].fileSize);
+        }
         res.status(200).json(papers);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -369,26 +355,6 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ message: 'Paper not found' });
         }
         res.status(200).json(paper);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// GET papers by category (subject)
-router.get('/category/:category', async (req, res) => {
-    try {
-        const papers = await Paper.find({ subject: req.params.category });
-        res.status(200).json(papers);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// GET papers by year
-router.get('/year/:year', async (req, res) => {
-    try {
-        const papers = await Paper.find({ year: parseInt(req.params.year) });
-        res.status(200).json(papers);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -411,39 +377,51 @@ router.get('/level/:level', async (req, res) => {
 // POST create a new paper with auto-generated paper_id
 router.post('/', async (req, res) => {
     try {
-        console.log('Received paper data:', req.body);
-        console.log('File size received:', req.body.fileSize);
+        console.log('=== RECEIVED PAPER DATA ===');
+        console.log('Full body:', JSON.stringify(req.body, null, 2));
+        console.log('fileSize from request:', req.body.fileSize);
+        console.log('fileSize type:', typeof req.body.fileSize);
 
         // Generate unique paper_id
         const paperId = generatePaperId();
 
-        // Ensure fileSize is properly set
+        // Ensure all fields are properly set
         const paperData = {
-            ...req.body,
             paper_id: paperId,
-            fileSize: req.body.fileSize || 0, // Ensure fileSize is always set
+            title: req.body.title || 'Untitled',
+            subject: req.body.subject || 'General',
+            level: req.body.level || 'Other',
+            year: parseInt(req.body.year) || new Date().getFullYear(),
+            paper_number: parseInt(req.body.paper_number) || 1,
+            pdf_url: req.body.pdf_url || '',
+            description: req.body.description || '',
+            fileSize: req.body.fileSize ? Number(req.body.fileSize) : 0, // Force to number
+            originalFileSize: req.body.originalFileSize ? Number(req.body.originalFileSize) : 0,
             fileType: req.body.fileType || 'application/pdf',
             uploadedBy: req.body.uploadedBy || null,
             uploaderName: req.body.uploaderName || 'Anonymous',
             downloads: 0,
         };
 
-        console.log('Final paper data to save:', paperData);
+        console.log('=== FINAL PAPER DATA TO SAVE ===');
+        console.log('paperData:', JSON.stringify(paperData, null, 2));
+        console.log('fileSize being saved:', paperData.fileSize);
 
         const paper = new Paper(paperData);
         const savedPaper = await paper.save();
 
-        console.log('Paper saved successfully with fileSize:', savedPaper.fileSize);
+        console.log('=== PAPER SAVED SUCCESSFULLY ===');
+        console.log('Saved paper ID:', savedPaper._id);
+        console.log('Saved fileSize:', savedPaper.fileSize);
+        console.log('Saved paper:', JSON.stringify(savedPaper, null, 2));
 
         res.status(201).json(savedPaper);
     } catch (error) {
         console.error('Error saving paper:', error.message);
         console.error('Full error:', error);
-
-        // Send detailed error message
         res.status(400).json({
             message: error.message,
-            errors: error.errors // Mongoose validation errors
+            errors: error.errors
         });
     }
 });
@@ -520,13 +498,17 @@ router.get('/stats', async (req, res) => {
         // Calculate average file size
         const avgFileSize = totalPapers > 0 ? totalSize / totalPapers : 0;
 
+        console.log('=== STATS ===');
+        console.log('Total papers:', totalPapers);
+        console.log('Total size:', totalSize);
+        console.log('Avg file size:', avgFileSize);
+
         res.status(200).json({
             totalPapers,
             totalSize,
             uniqueSubjects,
             levelCounts,
             avgFileSize,
-            papers
         });
     } catch (error) {
         console.error('Error fetching stats:', error);
