@@ -250,8 +250,6 @@
 
 
 
-
-
 import express from 'express';
 import Paper from '../models/Papers.js';
 import cloudinary from 'cloudinary';
@@ -399,9 +397,13 @@ router.get('/year/:year', async (req, res) => {
 // GET papers by level
 router.get('/level/:level', async (req, res) => {
     try {
-        const papers = await Paper.find({ level: req.params.level });
+        const decodedLevel = decodeURIComponent(req.params.level);
+        console.log(`Fetching papers for level: ${decodedLevel}`);
+        const papers = await Paper.find({ level: decodedLevel });
+        console.log(`Found ${papers.length} papers for level ${decodedLevel}`);
         res.status(200).json(papers);
     } catch (error) {
+        console.error('Error fetching papers by level:', error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -410,18 +412,28 @@ router.get('/level/:level', async (req, res) => {
 router.post('/', async (req, res) => {
     try {
         console.log('Received paper data:', req.body);
+        console.log('File size received:', req.body.fileSize);
 
         // Generate unique paper_id
         const paperId = generatePaperId();
 
-        // Create paper with generated paper_id
+        // Ensure fileSize is properly set
         const paperData = {
             ...req.body,
-            paper_id: paperId
+            paper_id: paperId,
+            fileSize: req.body.fileSize || 0, // Ensure fileSize is always set
+            fileType: req.body.fileType || 'application/pdf',
+            uploadedBy: req.body.uploadedBy || null,
+            uploaderName: req.body.uploaderName || 'Anonymous',
+            downloads: 0,
         };
+
+        console.log('Final paper data to save:', paperData);
 
         const paper = new Paper(paperData);
         const savedPaper = await paper.save();
+
+        console.log('Paper saved successfully with fileSize:', savedPaper.fileSize);
 
         res.status(201).json(savedPaper);
     } catch (error) {
@@ -481,6 +493,43 @@ router.get('/search', async (req, res) => {
         const papers = await Paper.find(filter);
         res.status(200).json(papers);
     } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// GET dashboard statistics
+router.get('/stats', async (req, res) => {
+    try {
+        const totalPapers = await Paper.countDocuments();
+        const papers = await Paper.find();
+
+        // Calculate total file size
+        const totalSize = papers.reduce((sum, paper) => sum + (paper.fileSize || 0), 0);
+
+        // Get unique subjects
+        const uniqueSubjects = new Set(papers.map(p => p.subject)).size;
+
+        // Count by level
+        const levelCounts = {};
+        papers.forEach(p => {
+            if (p.level) {
+                levelCounts[p.level] = (levelCounts[p.level] || 0) + 1;
+            }
+        });
+
+        // Calculate average file size
+        const avgFileSize = totalPapers > 0 ? totalSize / totalPapers : 0;
+
+        res.status(200).json({
+            totalPapers,
+            totalSize,
+            uniqueSubjects,
+            levelCounts,
+            avgFileSize,
+            papers
+        });
+    } catch (error) {
+        console.error('Error fetching stats:', error);
         res.status(500).json({ message: error.message });
     }
 });
