@@ -23,5 +23,5 @@ const userschema = new mongoose.Schema({
 });
 
 
-const User = mongoose.model("User", userschema);
+const User = mongoose.model("PAPERUPLOADER", userschema);
 export default User;
