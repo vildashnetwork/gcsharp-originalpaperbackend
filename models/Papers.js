@@ -60,9 +60,6 @@
 
 
 
-
-
-
 import mongoose from 'mongoose';
 
 const paperSchema = new mongoose.Schema({
@@ -99,6 +96,7 @@ const paperSchema = new mongoose.Schema({
         type: String,
         default: '',
     },
+    // These fields are needed for the Python backend
     fileSize: {
         type: Number,
         default: 0,
@@ -112,8 +110,8 @@ const paperSchema = new mongoose.Schema({
         default: 'application/pdf',
     },
     uploadedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        type: String,  // Changed from ObjectId to String to match Python
+        default: null,
     },
     uploaderName: {
         type: String,
@@ -123,13 +121,15 @@ const paperSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    // Python backend uses created_at directly from timestamps
 }, {
     timestamps: {
-        createdAt: 'created_at',
+        createdAt: 'created_at',  // This matches Python's expected field
         updatedAt: false,
     }
 });
 
+// Indexes - keep as-is
 paperSchema.index({ paper_id: 1 }, { unique: true });
 paperSchema.index({ subject: 1, year: 1, paper_number: 1 });
 paperSchema.index({ level: 1 });
