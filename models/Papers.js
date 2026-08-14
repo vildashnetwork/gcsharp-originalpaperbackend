@@ -63,13 +63,6 @@
 
 
 
-
-
-
-
-
-
-
 import mongoose from 'mongoose';
 
 const paperSchema = new mongoose.Schema({
@@ -106,7 +99,6 @@ const paperSchema = new mongoose.Schema({
         type: String,
         default: '',
     },
-    // ===== ADD THESE FIELDS =====
     fileSize: {
         type: Number,
         default: 0,
@@ -122,7 +114,6 @@ const paperSchema = new mongoose.Schema({
     uploadedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        default: null,
     },
     uploaderName: {
         type: String,
@@ -132,7 +123,6 @@ const paperSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
-    // ===== END ADDED FIELDS =====
 }, {
     timestamps: {
         createdAt: 'created_at',
@@ -140,7 +130,6 @@ const paperSchema = new mongoose.Schema({
     }
 });
 
-// Optional: Add indexes for faster queries
 paperSchema.index({ paper_id: 1 }, { unique: true });
 paperSchema.index({ subject: 1, year: 1, paper_number: 1 });
 paperSchema.index({ level: 1 });
