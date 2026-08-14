@@ -119,5 +119,5 @@ const paperSchema = new mongoose.Schema({
 paperSchema.index({ paper_id: 1 }, { unique: true });
 paperSchema.index({ subject: 1, year: 1, paper_number: 1 });
 
-const Paper = mongoose.model('Paper', paperSchema);
+const Paper = mongoose.model('Papers', paperSchema);
 export default Paper;
